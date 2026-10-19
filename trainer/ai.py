@@ -15,9 +15,11 @@ AI_RATE_LIMIT = int(os.environ.get("AI_RATE_LIMIT", "10"))
 AI_RATE_WINDOW = 60
 
 SYSTEM_PROMPT = (
-    "You are a lexical trainer assistant for English learners (Russian speakers, IT students). "
+    "You are a helpful English teacher assistant creating materials for school students (Russian speakers) at the B1 (Intermediate) level. "
+    "Your sentences must be grammatically simple but natural, using vocabulary appropriate for teenagers. "
     "Answer ONLY with valid JSON matching the requested schema. "
     "Never ask for or use personal data, names or identifiers of learners."
+
 )
 
 logger = logging.getLogger("trainer.ai")
@@ -103,14 +105,34 @@ def _fallback_distractors(word_id, count=3):
     import random
 
     word = WORD_BY_ID[word_id]
+    
+    # 1. Берем АНГЛИЙСКИЕ слова (word) других слов той же части речи
     pool = [
         w["word"]
         for w in WORDS
-        if w["id"] != word_id and w["pos"] == word["pos"] and w["word"] != word["word"]
+        if w["id"] != word_id 
+        and w["pos"] == word["pos"] 
+        and w["word"] != word["word"]
     ]
+    
+    # 2. Если слов той же части речи не хватает, берем любые другие
     if len(pool) < count:
-        pool = [w["word"] for w in WORDS if w["id"] != word_id]
-    return random.sample(pool, count)
+        pool = [
+            w["word"] 
+            for w in WORDS 
+            if w["id"] != word_id and w["word"] != word["word"]
+        ]
+    
+    # 3. Берем неправильные варианты
+    wrong_options = random.sample(pool, min(count, len(pool)))
+    
+    # 4. Формируем итоговый список и добавляем ПРАВИЛЬНЫЙ ответ
+    options = wrong_options
+    options.append(word["word"]) 
+    
+    # 5. Перемешиваем, чтобы правильный ответ был в случайном месте
+    random.shuffle(options) 
+    return options
 
 
 def get_distractors(word_id, count=3, alias=None):
@@ -162,8 +184,10 @@ def get_example(word_id, alias=None):
         return bank
     prompt = (
         f"Word: '{word['word']}' ({word['pos']}), Russian: '{word['translation']}'. "
-        "Write ONE short fresh example sentence in professional IT English "
-        "(documentation, code comments or team chat style). Different from this existing example: "
+        "Write ONE short, natural example sentence suitable for a B1 level school student. "
+        "The sentence should be 8-12 words long, use everyday school or teenage topics, and clearly show the word's meaning. "
+        "Do NOT use complex grammar (like third conditionals or passive voice) or advanced IT terms. "
+        "Different from this existing example: "
         f"{word['example']} "
         'JSON: {"example": "...", "example_ru": "..."}'
     )

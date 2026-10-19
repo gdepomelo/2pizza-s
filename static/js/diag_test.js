@@ -49,9 +49,13 @@
     wordEl.textContent = w.word;
     const others = words.filter(x => x.id !== w.id);
     shuffle(others);
-    const opts = [{ id: '__none__', text: 'Не знаю' }].concat(
-      others.slice(0, 3).map(o => ({ id: o.id, text: o.translation }))
-    );
+    
+    // Формируем варианты: правильный ответ + 3 неправильных + "Не знаю"
+    const opts = [
+      { id: w.id, text: w.translation },
+      ...others.slice(0, 3).map(o => ({ id: o.id, text: o.translation })),
+      { id: '__none__', text: 'Не знаю' }
+    ];
     shuffle(opts);
     optionsEl.innerHTML = '';
     opts.forEach(o => {

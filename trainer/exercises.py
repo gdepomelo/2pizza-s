@@ -33,16 +33,19 @@ def make_card(word_id, fresh_example=None):
 
 def make_choice(word_id, hints=0, alias=None):
     w = WORD_BY_ID[word_id]
+    
+    # Предложение с пропуском (как было)
     sentence = _sentence_with_blank(w)
-    distractors = ai_client.get_distractors(word_id, count=3, alias=alias)
-    options = distractors + [w["word"]]
-    random.shuffle(options)
+    
+    # Получаем 4 английских слова (1 правильное + 3 неправильных)
+    options = ai_client.get_distractors(word_id, count=3, alias=alias)
+    
     return {
         "kind": "choice",
         "word_id": word_id,
         "sentence": sentence,
-        "options": options,
-        "answer": w["word"],
+        "options": options,           # Теперь тут английские слова
+        "answer": w["word"],          # Правильный ответ - английское слово!
         "translation": w["translation"],
         "hints": hints,
         "hint_letter": w["word"][0] if hints >= 2 else "",

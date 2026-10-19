@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Входной тест — диагностика{% endblock %}
+{% block content %}
+<section class="section">
+  <div class="container narrow">
+    <h1>Входной тест</h1>
+    <p id="phase-label">Фаза 1 из 2: узнавание значения. Если слово не знаете — выбирайте «Не знаю».</p>
+    <div class="progress"><div class="progress-bar" id="progress-bar"></div></div>
+    <div class="quiz-card" id="quiz">
+      <div class="quiz-word" id="quiz-word"></div>
+      <div class="quiz-options" id="quiz-options"></div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+  window.DIAG_WORDS = {{ words | tojson }};
+</script>
+<script src="{{ url_for('static', filename='js/diag_test.js') }}"></script>
+{% endblock %}

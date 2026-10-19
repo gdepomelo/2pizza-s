@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Согласие и псевдоним — тренажёр лексики{% endblock %}
+{% block content %}
+<section class="section">
+  <div class="container narrow">
+    <h1>Начнём с согласия и псевдонима</h1>
+    <p>Тренажёр хранит ваши ответы, времена ответов и расписание повторений. Это нужно только для настройки обучения. Результаты видят вы и ваш преподаватель.</p>
+    <ul class="feature-list">
+      <li>Вы занимаетесь под псевдонимом — настоящее имя не требуется.</li>
+      <li>В запросы к искусственному интеллекту не передаются имя или идентификаторы.</li>
+      <li>Диагностику можно пройти повторно, а преподаватель может изменить любые параметры вручную.</li>
+    </ul>
+    <form method="post" class="form-card">
+      <label for="alias">Псевдоним</label>
+      <input type="text" id="alias" name="alias" maxlength="40" required
+             placeholder="Например: student_07" value="{{ form.get('alias','') }}">
+      <label class="checkbox-row">
+        <input type="checkbox" name="consent" required>
+        <span>Я согласен(на) на обработку персональных данных для настройки обучения</span>
+      </label>
+      <button type="submit" class="btn btn-primary">Далее: диагностика</button>
+      <p class="muted">Если псевдоним уже используется, прогресс продолжится с него.</p>
+    </form>
+  </div>
+</section>
+{% endblock %}

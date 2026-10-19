@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Диагностика — тренажёр лексики{% endblock %}
+{% block content %}
+<section class="section">
+  <div class="container narrow">
+    <h1>Диагностика</h1>
+    <p>Четыре коротких шага. Результат — стартовая настройка, а не ярлык: систему уточнят ваши реальные ответы на первых занятиях.</p>
+    <ol class="diag-steps">
+      <li>
+        <div>
+          <h3>Входной тест</h3>
+          <p>34 IT-термина: узнавание перевода и употребление в контексте.</p>
+        </div>
+        <a class="btn btn-primary" href="{{ url_for('diagnostics_test') }}">Начать</a>
+      </li>
+      <li>
+        <div>
+          <h3>Темп работы</h3>
+          <p>Теппинг-тест: как быстро вы нажимаете 30 секунд.</p>
+        </div>
+        <a class="btn" href="{{ url_for('diagnostics_tapping') }}">Начать</a>
+      </li>
+      <li>
+        <div>
+          <h3>Объём рабочей памяти</h3>
+          <p>Запомните и введите показанную последовательность.</p>
+        </div>
+        <a class="btn" href="{{ url_for('diagnostics_memory') }}">Начать</a>
+      </li>
+      <li>
+        <div>
+          <h3>Спокойствие при ответах</h3>
+          <p>Пять коротких вопросов о вашем самочувствии.</p>
+        </div>
+        <a class="btn" href="{{ url_for('diagnostics_anxiety') }}">Начать</a>
+      </li>
+    </ol>
+    {% if diag %}
+      <p class="flash">Последняя диагностика: готовность {{ diag.readiness }}, профиль «{{ diag.profile }}».
+        <a href="{{ url_for('diagnostics_result') }}">Посмотреть результат</a></p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Вход для преподавателя{% endblock %}
+{% block content %}
+<section class="section">
+  <div class="container narrow">
+    <h1>Кабинет преподавателя</h1>
+    <form method="post" class="form-card">
+      <label for="password">Пароль</label>
+      <input type="password" id="password" name="password" required>
+      <button type="submit" class="btn btn-primary">Войти</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

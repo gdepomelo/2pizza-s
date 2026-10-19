@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Результат диагностики{% endblock %}
+{% block content %}
+<section class="section">
+  <div class="container narrow">
+    <h1>Стартовая настройка</h1>
+    <p>Диагностика не ставит ярлыков: это параметры, с которых начнётся тренировка. Их уточнят ваши ответы, а преподаватель может изменить любой пункт.</p>
+    <div class="grid-2">
+      <div class="card">
+        <h3>Результат</h3>
+        <ul class="stat-list">
+          <li><span>Готовность</span><strong>{{ diag.readiness }}</strong></li>
+          <li><span>Словарный запас (тест)</span><strong>{{ diag.vocab_pct }}%</strong></li>
+          <li><span>Узнаёте / свободно</span><strong>{{ diag.known_count }} / {{ diag.fluent_count }}</strong></li>
+          <li><span>Темп (нажатий/с)</span><strong>{{ diag.taps_per_sec }}</strong></li>
+          <li><span>Рабочая память (диапазон)</span><strong>{{ diag.memory_span }}</strong></li>
+          <li><span>Тревожность (1–5)</span><strong>{{ diag.anxiety }}</strong></li>
+          <li><span>Профиль</span><strong>{{ profile_label }}</strong></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Ваши параметры</h3>
+        <ul class="stat-list">
+          <li><span>Новых слов за блок</span><strong>{{ params.new_words }}</strong></li>
+          <li><span>Лимит на ответ</span><strong>{{ params.answer_limit_sec }} с</strong></li>
+          <li><span>Подсказки</span><strong>{{ params.hints }}</strong></li>
+          <li><span>Режим обратной связи</span><strong>{{ params.feedback_mode }}</strong></li>
+          <li><span>Длина блока</span><strong>{{ params.block_length }}</strong></li>
+        </ul>
+        <a class="btn btn-primary" href="{{ url_for('practice') }}">Начать тренировку</a>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Тренировка — тренажёр лексики{% endblock %}
+{% block content %}
+<section class="section">
+  <div class="container narrow">
+    <h1>Тренировка</h1>
+    <div class="practice-meta">
+      <span>Блок: <span id="p-progress">0 / 0</span></span>
+      <span>Параметры: {{ params.new_words }} новых · {{ params.answer_limit_sec }} с · подсказок: {{ params.hints }}</span>
+    </div>
+    <div class="progress"><div class="progress-bar" id="p-bar"></div></div>
+
+    <div id="practice-area">
+      <button id="start-btn" class="btn btn-primary">Начать блок</button>
+    </div>
+
+    <div id="summary" style="display:none"></div>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+  window.FEEDBACK_MODE = {{ params.feedback_mode | tojson }};
+  window.ANSWER_LIMIT = {{ params.answer_limit_sec }};
+  window.HINTS = {{ params.hints }};
+</script>
+<script src="{{ url_for('static', filename='js/practice.js') }}"></script>
+{% endblock %}

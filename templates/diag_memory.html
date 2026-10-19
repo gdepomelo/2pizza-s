@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Рабочая память — диагностика{% endblock %}
+{% block content %}
+<section class="section">
+  <div class="container narrow center">
+    <h1>Объём рабочей памяти</h1>
+    <p>Посмотрите на последовательность цифр и введите её. Длина растёт, пока вы справляетесь.</p>
+    <div id="memory-stage">
+      <div class="memory-display" id="memory-display"></div>
+      <input type="text" id="memory-input" class="memory-input" autocomplete="off" style="display:none">
+      <button id="memory-btn" class="btn btn-primary">Показать</button>
+      <p class="muted" id="memory-status"></p>
+    </div>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+  window.MEM_CONF = {{ conf | tojson }};
+</script>
+<script src="{{ url_for('static', filename='js/diag_memory.js') }}"></script>
+{% endblock %}

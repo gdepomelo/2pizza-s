@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Теппинг-тест — диагностика{% endblock %}
+{% block content %}
+<section class="section">
+  <div class="container narrow center">
+    <h1>Темп работы</h1>
+    <p>Нажимайте на кнопку как можно быстрее <strong>{{ duration }}</strong> секунд. Это оценка вашего рабочего темпа, не результат.</p>
+    <div class="tapping-zone">
+      <button id="tap-btn" class="tap-btn" disabled>Ждите…</button>
+      <div class="tap-stats">
+        <div>Нажатий: <span id="tap-count">0</span></div>
+        <div>Осталось: <span id="tap-time">{{ duration }}</span> с</div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+  window.TAP_DURATION = {{ duration }};
+</script>
+<script src="{{ url_for('static', filename='js/diag_tapping.js') }}"></script>
+{% endblock %}

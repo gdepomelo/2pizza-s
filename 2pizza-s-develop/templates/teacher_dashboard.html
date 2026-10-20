@@ -42,7 +42,7 @@
         <tr>
           <th>Псевдоним</th><th>Уровень</th><th>Профиль</th>
           <th>Закреплено слов</th><th>Повторить сегодня</th>
-          <th>Точность (7 дней)</th><th>Параметры</th>
+          <th>Точность (7 дней)</th><th>Серия / сегодня</th><th>Параметры</th>
         </tr>
         {% for s in stats %}
         <tr>
@@ -52,6 +52,7 @@
           <td>{{ s.fluent }}</td>
           <td>{{ s.due }}</td>
           <td>{% if s.accuracy is not none %}{{ '%.0f' | format(s.accuracy * 100) }}% ({{ s.answers_n }}){% else %}—{% endif %}</td>
+          <td>{{ s.daily.streak }} дн. · {{ s.daily.today }}/{{ s.daily.goal }}</td>
           <td class="muted">
             {{ s.params.get('new_words', '—') }} новых ·
             {{ s.params.get('answer_limit_sec', '—') }} с ·

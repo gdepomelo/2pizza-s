@@ -15,7 +15,7 @@ AI_RATE_LIMIT = int(os.environ.get("AI_RATE_LIMIT", "10"))
 AI_RATE_WINDOW = 60
 
 SYSTEM_PROMPT = (
-    "You are a helpful English teacher assistant creating materials for school students (Russian speakers) at the B1 (Intermediate) level. "
+    "You are a helpful English teacher assistant creating materials for school students (Russian speakers) at the A1–A2 (beginner) level, English File Beginner/Elementary vocabulary. "
     "Your sentences must be grammatically simple but natural, using vocabulary appropriate for teenagers. "
     "Answer ONLY with valid JSON matching the requested schema. "
     "Never ask for or use personal data, names or identifiers of learners."
@@ -105,7 +105,12 @@ def _fallback_distractors(word_id, count=3):
     import random
 
     word = WORD_BY_ID[word_id]
-    pool = [w["word"] for w in WORDS if w["id"] != word_id and w["pos"] == word["pos"]]
+    # Сначала слова той же части речи из того же модуля, потом — из всего банка.
+    same = [w for w in WORDS if w["id"] != word_id and w["pos"] == word["pos"]
+            and w["word"].lower() != word["word"].lower()]
+    pool = [w["word"] for w in same if w.get("module") == word.get("module")]
+    if len(pool) < count:
+        pool = [w["word"] for w in same]
     if len(pool) < count:
         pool = [w["word"] for w in WORDS if w["id"] != word_id]
     return random.sample(pool, min(count, len(pool)))
@@ -126,8 +131,8 @@ def get_distractors(word_id, count=3, alias=None):
     if not _rate_ok(alias):
         return _fallback_distractors(word_id, count)
     prompt = (
-        f"Sentence with a gap: {word['example'].replace(word['word'], '_____')} "
-        f"The correct word is '{word['word']}' ({word['pos']}). "
+        f"Sentence: {word['example']} "
+        f"The target word/phrase is '{word['word']}' ({word['pos']}). "
         f"Give {count} other English words of the same part of speech and similar difficulty "
         "that a learner might wrongly put into the gap, but that do NOT fit the meaning. "
         'JSON: {"distractors": ["..."]}'
@@ -184,8 +189,8 @@ def explain_options(word_id, wrong_options, alias=None):
     cached = _cache_get(db, key)
     if cached is None and _rate_ok(alias):
         prompt = (
-            f"Sentence with a gap: {word['example'].replace(word['word'], '_____')} "
-            f"Correct word: '{word['word']}' (Russian: '{word['translation']}'). "
+            f"Sentence: {word['example']} "
+            f"Correct word/phrase: '{word['word']}' (Russian: '{word['translation']}'). "
             f"Wrong options: {', '.join(wrong_options)}. "
             "For EACH wrong option give its Russian translation and explain in ONE short sentence "
             "in RUSSIAN why it does not fit this sentence. "

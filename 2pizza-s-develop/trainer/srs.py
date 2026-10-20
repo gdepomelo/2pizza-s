@@ -95,3 +95,24 @@ def accuracy_since(db, alias, days=7):
     if not row or row["n"] == 0:
         return None, 0
     return row["c"] / row["n"], row["n"]
+
+
+def daily_stats(db, alias, goal):
+    """Цель на день (блоков) и серия: сколько дней подряд цель выполнена.
+
+    Если сегодня цель ещё не выполнена, серия считается до вчерашнего дня и не сгорает.
+    """
+    rows = db.execute(
+        "SELECT substr(finished_at, 1, 10) AS d, COUNT(*) AS n FROM blocks WHERE alias=? GROUP BY d",
+        (alias,),
+    ).fetchall()
+    per_day = {r["d"]: r["n"] for r in rows}
+    goal = max(1, int(goal or 2))
+    today = _today()
+    done_today = per_day.get(today.isoformat(), 0)
+    day = today if done_today >= goal else today - timedelta(days=1)
+    streak = 0
+    while per_day.get(day.isoformat(), 0) >= goal:
+        streak += 1
+        day -= timedelta(days=1)
+    return {"goal": goal, "today": done_today, "streak": streak, "goal_met": done_today >= goal}

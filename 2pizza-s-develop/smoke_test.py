@@ -26,7 +26,7 @@ assert c.get("/diagnostics/result").status_code == 302
 
 items = [
     {"word_id": w["id"], "recognition_correct": i % 2 == 0, "usage_correct": i % 4 == 0}
-    for i, w in enumerate(WORDS)
+    for i, w in enumerate(WORDS[:15])
 ]
 r = c.post("/api/diagnostics/test", json={"items": items})
 print("diag test api", r.status_code, r.get_json())

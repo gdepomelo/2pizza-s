@@ -415,3 +415,28 @@ kbd {
 
 .stat-tile { display: flex; flex-direction: column; gap: 4px; }
 .stat-tile strong { font-size: 1.5rem; }
+
+.row-current td { background: var(--accent); font-weight: 600; }
+
+/* Цель и серия, переключатель направления карточек */
+.practice-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.daily-bar { background: var(--accent); border-radius: 999px; padding: 4px 14px; font-size: 0.92rem; }
+.daily-bar.goal-met { background: var(--ok-bg); color: var(--ok); }
+.switch-row { display: inline-flex; align-items: center; gap: 8px; font-size: 0.9rem; color: var(--muted); cursor: pointer; user-select: none; }
+.switch { appearance: none; -webkit-appearance: none; width: 42px; height: 24px; border-radius: 999px; background: var(--border); position: relative; cursor: pointer; transition: background 0.2s; margin: 0; }
+.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.2); transition: transform 0.2s; }
+.switch:checked { background: var(--primary); }
+.switch:checked::after { transform: translateX(18px); }
+.switch:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.flip-face.face-ru { background: var(--accent); }
+.flip-face.face-en { background: var(--surface); }
+.daily-card { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+.daily-card h3 { margin: 0 0 6px; }
+.daily-card p { margin: 0; }
+.goal-form { display: flex; align-items: center; gap: 8px; }
+.goal-form select { padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px; }
+
+.modal-overlay { position: fixed; inset: 0; background: rgba(20, 26, 40, 0.45); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 16px; }
+.modal { background: var(--surface); border-radius: var(--radius); padding: 28px; max-width: 480px; width: 100%; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.2); }
+.modal h2 { margin: 6px 0 10px; }
+.modal-icon { font-size: 2.6rem; }

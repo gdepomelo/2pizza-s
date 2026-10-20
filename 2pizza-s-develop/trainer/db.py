@@ -60,6 +60,16 @@ CREATE TABLE IF NOT EXISTS recommendations (
     resolved_at TEXT
 );
 
+CREATE TABLE IF NOT EXISTS blocks (
+    block_id TEXT PRIMARY KEY,
+    alias TEXT NOT NULL,
+    kind TEXT,
+    module_id TEXT,
+    words INTEGER,
+    clean INTEGER,
+    finished_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS ai_cache (
     cache_key TEXT PRIMARY KEY,
     payload TEXT NOT NULL,
@@ -87,4 +97,7 @@ def init_app(app):
     with app.app_context():
         db = get_db()
         db.executescript(SCHEMA)
+        cols = {r["name"] for r in db.execute("PRAGMA table_info(students)")}
+        if "daily_goal" not in cols:
+            db.execute("ALTER TABLE students ADD COLUMN daily_goal INTEGER DEFAULT 2")
         db.commit()

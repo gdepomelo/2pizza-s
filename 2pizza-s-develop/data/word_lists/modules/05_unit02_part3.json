@@ -1,0 +1,115 @@
+{
+ "id": "u2p3",
+ "title": "Unit 2 · Part 3",
+ "topic": "Time",
+ "words": [
+  {
+   "id": "its_a_quarter_past_six",
+   "word": "It's a quarter past six.",
+   "pos": "phrase",
+   "translation": "Сейчас четверть седьмого (15 минут после шести).",
+   "level": "A1",
+   "definition": "used to say the time is 6:15",
+   "example": "It's a quarter past six. Time to get up!",
+   "example_ru": "Сейчас четверть седьмого. Пора вставать!",
+   "unit": 2,
+   "topic": "Time"
+  },
+  {
+   "id": "its_a_quarter_to_seven",
+   "word": "It's a quarter to seven.",
+   "pos": "phrase",
+   "translation": "Сейчас без четверти семь.",
+   "level": "A1",
+   "definition": "used to say the time is 6:45",
+   "example": "What time is it? ~ It's a quarter to seven.",
+   "example_ru": "Сколько времени? ~ Сейчас без четверти семь.",
+   "unit": 2,
+   "topic": "Time"
+  },
+  {
+   "id": "its_five_to_seven",
+   "word": "It's five to seven.",
+   "pos": "phrase",
+   "translation": "Сейчас без пяти семь.",
+   "level": "A1",
+   "definition": "used to say the time is 6:55",
+   "example": "It's five to seven. The bus will arrive soon.",
+   "example_ru": "Сейчас без пяти семь. Автобус скоро придет.",
+   "unit": 2,
+   "topic": "Time"
+  },
+  {
+   "id": "its_half_past_six",
+   "word": "It's half past six.",
+   "pos": "phrase",
+   "translation": "Сейчас половина седьмого (6:30).",
+   "level": "A1",
+   "definition": "used to say the time is 6:30",
+   "example": "What time is it? ~ It's half past six.",
+   "example_ru": "Сколько времени? ~ Сейчас половина седьмого.",
+   "unit": 2,
+   "topic": "Time"
+  },
+  {
+   "id": "its_six_oclock",
+   "word": "It's six o'clock.",
+   "pos": "phrase",
+   "translation": "Сейчас шесть часов.",
+   "level": "A1",
+   "definition": "used to say the time is exactly 6:00",
+   "example": "It's six o'clock. I'm leaving the office now.",
+   "example_ru": "Сейчас шесть часов. Я сейчас ухожу из офиса.",
+   "unit": 2,
+   "topic": "Time"
+  },
+  {
+   "id": "its_ten_past_six",
+   "word": "It's ten past six.",
+   "pos": "phrase",
+   "translation": "Сейчас десять минут седьмого (6:10).",
+   "level": "A1",
+   "definition": "used to say the time is 6:10",
+   "example": "What time is it? ~ It's ten past six.",
+   "example_ru": "Сколько времени? ~ Сейчас десять минут седьмого.",
+   "unit": 2,
+   "topic": "Time"
+  },
+  {
+   "id": "its_three_minutes_past_six",
+   "word": "It's three minutes past six.",
+   "pos": "phrase",
+   "translation": "Сейчас три минуты седьмого.",
+   "level": "A1",
+   "definition": "used to say the time is 6:03",
+   "example": "What time is it? ~ It's three minutes past six.",
+   "example_ru": "Сколько времени? ~ Сейчас три минуты седьмого.",
+   "unit": 2,
+   "topic": "Time"
+  },
+  {
+   "id": "its_twenty_past_six",
+   "word": "It's twenty past six.",
+   "pos": "phrase",
+   "translation": "Сейчас двадцать минут седьмого (6:20).",
+   "level": "A1",
+   "definition": "used to say the time is 6:20",
+   "example": "What time is it? ~ It's twenty past six.",
+   "example_ru": "Сколько времени? ~ Сейчас двадцать минут седьмого.",
+   "unit": 2,
+   "topic": "Time"
+  },
+  {
+   "id": "its_twenty_five_to_seven",
+   "word": "It's twenty-five to seven.",
+   "pos": "phrase",
+   "translation": "Сейчас без двадцати пяти семь (6:35).",
+   "level": "A1",
+   "definition": "used to say the time is 6:35",
+   "example": "What time is it? ~ It's twenty-five to seven.",
+   "example_ru": "Сколько времени? ~ Сейчас без двадцати пяти семь.",
+   "unit": 2,
+   "topic": "Time"
+  }
+ ]
+}

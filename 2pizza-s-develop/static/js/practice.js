@@ -22,20 +22,27 @@
     if (keyHandler(e) === true) e.preventDefault();
   });
 
-  startBtn.addEventListener('click', startBlock);
+  startBtn.addEventListener('click', () => startBlock());
   keyHandler = e => { if (e.key === 'Enter') { startBlock(); return true; } };
+  showDaily(window.DAILY);
 
-  function startBlock() {
+  function startBlock(mode) {
     keyHandler = null;
+    currentCard = null;
     area.innerHTML = '<p class="muted">Готовим блок…</p>';
-    fetch('/api/practice/start', { method: 'POST' })
+    fetch('/api/practice/start', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode: mode || 'auto' })
+    })
       .then(r => r.json())
       .then(data => {
         if (data.error) {
           area.innerHTML = '<p>Сначала пройдите диагностику.</p>';
           return;
         }
-        block = { blockId: data.block_id, words: {}, ids: [], results: {} };
+        block = { blockId: data.block_id, words: {}, ids: [], results: {},
+                  kind: data.kind, moduleId: data.module_id, module: data.module };
         data.words.forEach(w => {
           block.words[w.word_id] = w;
           block.ids.push(w.word_id);
@@ -53,7 +60,8 @@
 
   function updateProgress() {
     const s = STAGES[stage.key];
-    stageEl.textContent = 'Этап ' + s.num + ' из 2 · ' + s.title + (stage.round > 1 ? ' · круг ' + stage.round : '');
+    const label = block.kind === 'review' ? 'Повторение' : block.kind === 'extra' ? 'Доп. повторение' : block.module;
+    stageEl.textContent = (label ? label + ' · ' : '') + 'Этап ' + s.num + ' из 2 · ' + s.title + (stage.round > 1 ? ' · круг ' + stage.round : '');
     progressEl.textContent = 'выучено ' + stage.learned + ' из ' + stage.total +
       (stage.pile.length ? ' · в стопке «Забыл»: ' + stage.pile.length : '');
     progressBar.style.width = (stage.learned / stage.total) * 100 + '%';
@@ -96,45 +104,61 @@
 
   // ---------- Этап 1: карточки-перевёртыши ----------
 
+  // Направление карточек: «слово → перевод» или «перевод → слово» (переключатель над тренировкой).
+  const dirToggle = document.getElementById('dir-toggle');
+  try { dirToggle.checked = localStorage.getItem('cardReverse') === '1'; } catch (e) { /* без хранилища */ }
+  dirToggle.addEventListener('change', () => {
+    try { localStorage.setItem('cardReverse', dirToggle.checked ? '1' : '0'); } catch (e) { /* без хранилища */ }
+    dirToggle.blur();
+    if (currentCard) renderCard(currentCard);
+  });
+  let currentCard = null;
+
   function renderCard(ex) {
+    currentCard = ex;
+    const reverse = dirToggle.checked;
     const isNew = block.words[ex.word_id] && block.words[ex.word_id].is_new;
+    const badge = '<span class="badge">' + (isNew ? 'новое слово' : 'повторение') + '</span>';
+    const enSide =
+      '<div class="ex-word">' + esc(ex.word) + ' <span class="muted">(' + esc(ex.pos) + ')</span></div>' +
+      '<p class="ex-example" id="card-example">' + ex.example_html + '</p>';
+    const ruSide =
+      '<div class="ex-translation">' + esc(ex.translation) + '</div>' +
+      '<p class="ex-example">' + ex.example_ru_html + '</p>';
+    const sound =
+      '<div class="btn-row center-row">' +
+        '<button class="btn btn-small" data-say="word">🔊 Слово</button>' +
+        '<button class="btn btn-small" data-say="example">🔊 Пример</button>' +
+      '</div>';
+    const hint = '<p class="muted flip-hint">' +
+      (reverse ? 'Вспомните английское слово. Проверить' : 'Проверить перевод') +
+      ' — нажмите на карточку или <kbd>Пробел</kbd></p>';
+    const front = reverse ? badge + ruSide + hint : badge + enSide + hint;
+    const back = reverse
+      ? enSide + sound + '<p class="muted">' + esc(ex.definition) + '</p>'
+      : ruSide + sound + '<p class="muted">' + esc(ex.definition) + '</p>';
+
     area.innerHTML =
       '<div class="flip-card" id="flip-card" role="button" tabindex="0" aria-label="Перевернуть карточку">' +
         '<div class="flip-inner">' +
-          '<div class="flip-face flip-front">' +
-            '<span class="badge">' + (isNew ? 'новое слово' : 'повторение') + '</span>' +
-            '<div class="ex-word">' + esc(ex.word) + ' <span class="muted">(' + esc(ex.pos) + ')</span></div>' +
-            '<p class="ex-example" id="card-example">' + ex.example_html + '</p>' +
-            '<p class="muted flip-hint">Вспомните перевод, затем нажмите на карточку или <kbd>Пробел</kbd></p>' +
-          '</div>' +
-          '<div class="flip-face flip-back">' +
-            '<div class="ex-translation">' + esc(ex.translation) + '</div>' +
-            '<p class="ex-example">' + ex.example_ru_html + '</p>' +
-            '<div class="btn-row center-row">' +
-              '<button class="btn btn-small" data-say="word">🔊 Слово</button>' +
-              '<button class="btn btn-small" data-say="example">🔊 Пример</button>' +
-            '</div>' +
-            '<p class="muted">' + esc(ex.definition) + '</p>' +
-          '</div>' +
+          '<div class="flip-face flip-front' + (reverse ? ' face-ru' : '') + '">' + front + '</div>' +
+          '<div class="flip-face flip-back' + (reverse ? ' face-en' : '') + '">' + back + '</div>' +
         '</div>' +
       '</div>' +
-      '<div class="btn-row center-row card-answers" id="card-answers" hidden>' +
+      '<div class="btn-row center-row card-answers" id="card-answers">' +
         '<button class="btn btn-forgot" id="btn-forgot"><kbd>←</kbd> Забыл</button>' +
         '<button class="btn btn-primary" id="btn-knew">Помню <kbd>→</kbd></button>' +
       '</div>';
 
     const card = document.getElementById('flip-card');
-    const answers = document.getElementById('card-answers');
-    let flipped = false;
     let done = false;
 
-    const flip = () => {
-      card.classList.toggle('flipped');
-      if (!flipped) { flipped = true; answers.hidden = false; }
-    };
+    // Переворот необязателен: «Помню»/«Забыл» можно нажать сразу.
+    const flip = () => card.classList.toggle('flipped');
     const answer = remembered => {
-      if (!flipped || done) return;
+      if (done) return;
       done = true;
+      currentCard = null;
       const rt = Date.now() - ex.t0;
       if (remembered) stage.learned++; else miss(ex.word_id);
       logAnswer(ex, remembered, rt).then(next);
@@ -166,7 +190,7 @@
     area.innerHTML = '';
     const card = document.createElement('div');
     card.className = 'exercise-card';
-    let html = '<div class="ex-prompt">Выберите слово для пропуска и нажмите «Ответить»:</div>' +
+    let html = '<div class="ex-prompt">' + esc(ex.prompt) + '</div>' +
       '<div class="ex-sentence">' + esc(ex.sentence) + '</div>';
     if (ex.hint_letter) {
       html += '<p class="muted">Подсказка: начинается на «' + esc(ex.hint_letter) + '», букв: ' + ex.hint_len + '</p>';
@@ -344,7 +368,8 @@
     fetch('/api/practice/finish', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ block_id: block.blockId, results: Object.values(block.results) })
+      body: JSON.stringify({ block_id: block.blockId, results: Object.values(block.results),
+                             kind: block.kind, module_id: block.moduleId })
     })
       .then(r => r.json())
       .then(data => {
@@ -361,14 +386,71 @@
         if (data.recommendation) {
           html += '<div class="feedback info">' + esc(data.recommendation) + '</div>';
         }
+        const d = data.daily;
+        if (d) {
+          html += '<div class="feedback ' + (d.goal_met ? 'ok' : 'info') + '">' +
+            (d.goal_met
+              ? '🎯 Цель на сегодня выполнена (' + d.today + ' из ' + d.goal + ')! Серия: ' + days(d.streak) + ' 🔥'
+              : 'Цель на сегодня: ' + d.today + ' из ' + d.goal + ' блоков. Ещё ' + (d.goal - d.today) +
+                ' — и серия продолжится' + (d.streak ? ' (сейчас ' + days(d.streak) + ')' : '') + '.') +
+            '</div>';
+        }
         html += '<div class="btn-row"><button class="btn btn-primary" id="again-btn">Новый блок <kbd>Enter</kbd></button>' +
           '<a class="btn" href="/cabinet">Личный кабинет</a></div></div>';
         area.innerHTML = html;
         stageEl.textContent = 'Блок завершён';
         progressEl.textContent = '';
-        document.getElementById('again-btn').onclick = startBlock;
+        showDaily(d);
+        document.getElementById('again-btn').onclick = () => startBlock();
         keyHandler = e => { if (e.key === 'Enter') { startBlock(); return true; } };
+        if (data.module_done) showModuleDone(data.module_done);
       });
+  }
+
+  // Модуль завершён: отдельное окно и переход к следующему модулю.
+  function showModuleDone(m) {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.innerHTML = '<div class="modal" role="dialog" aria-modal="true">' +
+      '<div class="modal-icon">🏁</div>' +
+      '<h2>' + esc(m.title) + ' завершён!</h2>' +
+      '<p>Все слова модуля изучены. Они будут возвращаться на повторение по расписанию.</p>' +
+      (m.next_title
+        ? '<p>Следующий модуль: <strong>' + esc(m.next_title) + '</strong></p>' +
+          (m.next_topic ? '<p class="muted">Тема: ' + esc(m.next_topic) + '</p>' : '') +
+          '<div class="btn-row center-row"><button class="btn btn-primary" id="next-module-btn">Приступить к следующему модулю <kbd>Enter</kbd></button>' +
+          '<button class="btn" id="close-modal-btn">Позже</button></div>'
+        : '<p><strong>Это был последний модуль.</strong> Дальше — повторения по расписанию.</p>' +
+          '<div class="btn-row center-row"><button class="btn btn-primary" id="close-modal-btn">Закрыть <kbd>Enter</kbd></button></div>') +
+      '</div>';
+    document.body.appendChild(overlay);
+    const close = () => {
+      overlay.remove();
+      keyHandler = e => { if (e.key === 'Enter') { startBlock(); return true; } };
+    };
+    const go = () => { overlay.remove(); startBlock('new'); };
+    document.getElementById('close-modal-btn').onclick = close;
+    const nextBtn = document.getElementById('next-module-btn');
+    if (nextBtn) nextBtn.onclick = go;
+    keyHandler = e => {
+      if (e.key === 'Enter') { (nextBtn ? go : close)(); return true; }
+      if (e.key === 'Escape') { close(); return true; }
+    };
+  }
+
+  function showDaily(d) {
+    const el = document.getElementById('p-daily');
+    if (!el || !d) return;
+    el.innerHTML = '🎯 Сегодня: <strong>' + d.today + ' / ' + d.goal + '</strong> блоков' +
+      ' · 🔥 Серия: <strong>' + days(d.streak) + '</strong>';
+    el.classList.toggle('goal-met', !!d.goal_met);
+  }
+
+  function days(n) {
+    const m10 = n % 10, m100 = n % 100;
+    if (m10 === 1 && m100 !== 11) return n + ' день';
+    if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return n + ' дня';
+    return n + ' дней';
   }
 
   // ---------- утилиты ----------

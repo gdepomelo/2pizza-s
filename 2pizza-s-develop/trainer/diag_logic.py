@@ -1,17 +1,56 @@
 import random
 
-from .config import RULES, WORDS
+from .config import MODULES, RULES, WORDS, WORD_BY_ID
+
+
+def word_levels():
+    """Уровень сложности каждого слова для адаптивного теста: (словарь id → уровень, число уровней).
+
+    Явное поле "difficulty" у слова важнее всего; иначе уровень = номер модуля
+    (модули идут от простого к сложному). Если модуль один, уровни грубо оцениваются
+    по длине слова (5 ступеней).
+    """
+    if any("difficulty" in w for w in WORDS):
+        raw = {w["id"]: int(w.get("difficulty", 0)) for w in WORDS}
+        bins = None
+    elif len(MODULES) > 1:
+        raw = {w["id"]: i for i, m in enumerate(MODULES) for w in m["words"]}
+        bins = None
+    else:
+        raw = {w["id"]: len(w["word"]) for w in WORDS}
+        bins = 5
+    if bins:
+        ordered = sorted(raw, key=lambda wid: (raw[wid], wid))
+        levels = {wid: i * bins // len(ordered) for i, wid in enumerate(ordered)}
+    else:
+        index = {v: i for i, v in enumerate(sorted(set(raw.values())))}
+        levels = {wid: index[v] for wid, v in raw.items()}
+    return levels, max(1, len(set(levels.values())))
 
 
 def score_entry_test(items):
-    known = []
-    fluent = []
-    for it in items:
+    """Оценка адаптивного теста.
+
+    Уровень — средний уровень слов во второй половине теста (лестница к этому моменту сходится),
+    ±0.5 за верный/неверный ответ. Итог = 80% × уровень × точность + 20% × употребление в контексте.
+    """
+    levels, k = word_levels()
+    known, fluent = [], []
+    rec = [it for it in items if it.get("word_id") in WORD_BY_ID]
+    for it in rec:
         if it.get("recognition_correct"):
             known.append(it["word_id"])
             if it.get("usage_correct"):
                 fluent.append(it["word_id"])
-    vocab_pct = (len(known) + len(fluent)) / (len(WORDS) + len(known)) * 100 if WORDS else 0
+    if not rec:
+        return 0.0, known, fluent
+    tail = rec[len(rec) // 2:]
+    est = sum(levels[it["word_id"]] + (0.5 if it.get("recognition_correct") else -0.5) for it in tail) / len(tail)
+    level_part = max(0.0, min(1.0, (est + 0.5) / k))
+    accuracy = len(known) / len(rec)
+    usage_asked = sum(1 for it in rec if it.get("usage_asked"))
+    usage_part = len(fluent) / usage_asked if usage_asked else 0.0
+    vocab_pct = (0.8 * level_part * (0.5 + 0.5 * accuracy) + 0.2 * usage_part) * 100
     return round(vocab_pct, 1), known, fluent
 
 

@@ -23,7 +23,9 @@ load_dotenv()
 from trainer import db as dbm
 from trainer import ai as ai_client
 from trainer import diag_logic, exercises, srs
-from trainer.config import DATA_DIR, DATABASE_PATH, RULES, WORDS, WORD_BY_ID, get_profile, resolve_params
+from trainer.config import (
+    DATA_DIR, DATABASE_PATH, MODULE_BY_ID, MODULES, RULES, WORDS, WORD_BY_ID, get_profile, resolve_params,
+)
 
 
 def setup_logging():
@@ -244,10 +246,13 @@ def register_routes(app):
     @app.route("/diagnostics/test")
     @student_required
     def diagnostics_test():
-        words = [w for w in WORDS]
-        random_module = __import__("random")
-        random_module.shuffle(words)
-        return render_template("diag_test.html", words=words)
+        levels, k = diag_logic.word_levels()
+        words = [
+            {"id": w["id"], "word": exercises.option_text(w["word"]), "translation": w["translation"],
+             "gap": exercises._sentence_with_blank(w), "lvl": levels[w["id"]]}
+            for w in WORDS
+        ]
+        return render_template("diag_test.html", words=words, levels=k)
 
     @app.route("/diagnostics/memory")
     @student_required
@@ -285,7 +290,7 @@ def register_routes(app):
     @student_required
     def api_diagnostics_test():
         data = request.get_json(force=True)
-        items = data.get("items") or []
+        items = (data.get("items") or [])[:40]  # адаптивный тест — 15 слов; лимит бережёт cookie сессии
         vocab_pct, known, fluent = diag_logic.score_entry_test(items)
         session["diag_vocab"] = {"vocab_pct": vocab_pct, "known": known, "fluent": fluent}
         _mark_stage_done("test")
@@ -336,7 +341,8 @@ def register_routes(app):
             flash("Сначала пройдите диагностику.")
             return redirect(url_for("diagnostics_hub"))
         params, _ = get_params(db, alias)
-        return render_template("practice.html", params=params)
+        return render_template("practice.html", params=params,
+                               daily=srs.daily_stats(db, alias, student["daily_goal"]))
 
     @app.route("/api/practice/start", methods=["POST"])
     @student_required
@@ -346,11 +352,17 @@ def register_routes(app):
         params, student = get_params(db, alias)
         if not student or not student["level"]:
             return jsonify({"error": "no_diagnostics"}), 400
-        words = exercises.build_block(db, alias, params, exclude=session.get("last_block_words") or [])
+        mode = (request.get_json(silent=True) or {}).get("mode") or "auto"
+        plan = exercises.build_block(db, alias, params, mode=mode,
+                                     exclude=session.get("last_block_words") or [])
+        words = plan["words"]
         session["last_block_words"] = [w["word_id"] for w in words]
         block_id = secrets.token_hex(8)
         session["block_id"] = block_id
-        return jsonify({"block_id": block_id, "words": words, "params": params, "total": len(words)})
+        module = MODULE_BY_ID.get(plan["module_id"])
+        return jsonify({"block_id": block_id, "words": words, "params": params, "total": len(words),
+                        "kind": plan["kind"], "module_id": plan["module_id"],
+                        "module": module["title"] if module else None})
 
     @app.route("/api/practice/exercise")
     @student_required
@@ -422,17 +434,37 @@ def register_routes(app):
         alias = current_alias()
         db = dbm.get_db()
         params, student = get_params(db, alias)
-        for res in data.get("results") or []:
+        results = data.get("results") or []
+        for res in results:
             wid = res.get("word_id")
             if wid in WORD_BY_ID:
                 srs.schedule(db, alias, wid, bool(res.get("clean")),
                              res.get("response_time_ms"), params["answer_limit_sec"])
+        module_id = data.get("module_id")
+        if block_id and results:
+            db.execute(
+                """INSERT OR IGNORE INTO blocks (block_id, alias, kind, module_id, words, clean, finished_at)
+                   VALUES (?,?,?,?,?,?,?)""",
+                (block_id, alias, data.get("kind"), module_id, len(results),
+                 sum(1 for r in results if r.get("clean")), datetime.now().isoformat(timespec="seconds")),
+            )
+            db.commit()
+        module_done = None
+        if data.get("kind") == "new" and module_id in MODULE_BY_ID and exercises.module_finished(db, alias, module_id):
+            nxt = exercises.next_module(module_id)
+            module_done = {
+                "title": MODULE_BY_ID[module_id]["title"],
+                "next_title": nxt["title"] if nxt else None,
+                "next_topic": nxt["topic"] if nxt else None,
+            }
+        daily = srs.daily_stats(db, alias, student["daily_goal"] if student else 2)
         rows = db.execute(
             "SELECT * FROM answers WHERE alias=? AND block_id=? ORDER BY id",
             (alias, block_id),
         ).fetchall()
         if not rows:
-            return jsonify({"message": "Блок пуст.", "fatigue": False})
+            return jsonify({"message": "Блок пуст.", "fatigue": False, "daily": daily,
+                            "module_done": module_done})
         total = len(rows)
         correct = sum(r["correct"] for r in rows)
         times = [r["response_time_ms"] or 0 for r in rows if r["response_time_ms"]]
@@ -507,6 +539,8 @@ def register_routes(app):
                 "fatigue": fatigue,
                 "fatigue_message": fatigue_msg,
                 "recommendation": rec_message,
+                "daily": daily,
+                "module_done": module_done,
             }
         )
 
@@ -553,7 +587,19 @@ def register_routes(app):
             fluent_n=sum(1 for r in srs_rows if r["box"] >= RULES["srs"]["fluent_box"]),
             due_n=sum(1 for r in srs_rows if r["due_date"] <= today),
             total_words=len(WORDS),
+            modules=exercises.module_progress(db, alias),
+            daily=srs.daily_stats(db, alias, st["daily_goal"]),
         )
+
+    @app.route("/cabinet/goal", methods=["POST"])
+    @student_required
+    def cabinet_goal():
+        goal = max(1, min(10, int(request.form.get("goal") or 2)))
+        db = dbm.get_db()
+        db.execute("UPDATE students SET daily_goal=? WHERE alias=?", (goal, current_alias()))
+        db.commit()
+        flash(f"Цель на день: блоков — {goal}.")
+        return redirect(url_for("cabinet"))
 
     @app.route("/teacher/login", methods=["GET", "POST"])
     def teacher_login():
@@ -597,6 +643,7 @@ def register_routes(app):
                     "due": len(due),
                     "params": params,
                     "pending": pending,
+                    "daily": srs.daily_stats(db, st["alias"], st["daily_goal"]),
                 }
             )
         all_pending = db.execute(

@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block title %}{{ st.alias }} — кабинет преподавателя{% endblock %}
+{% block content %}
+<section class="section">
+  <div class="container">
+    <p><a href="{{ url_for('teacher_dashboard') }}">← К группе</a></p>
+    <h1>Студент: {{ st.alias }}</h1>
+    <div class="grid-3">
+      <div class="card">
+        <h3>Профиль</h3>
+        <ul class="stat-list">
+          <li><span>Уровень</span><strong>{{ st.level or '—' }}</strong></li>
+          <li><span>Профиль</span><strong>{{ st.profile or '—' }}</strong></li>
+          <li><span>Точность (7 дней)</span><strong>{% if accuracy is not none %}{{ '%.0f' | format(accuracy * 100) }}% ({{ answers_n }}){% else %}—{% endif %}</strong></li>
+          <li><span>Повторений в SRS</span><strong>{{ srs_rows | length }}</strong></li>
+        </ul>
+        <form method="post" action="{{ url_for('teacher_update_level', alias=st.alias) }}" class="form-card">
+          <label>Изменить уровень вручную</label>
+          <select name="level">
+            {% for lv in RULES.level_up.levels %}
+              <option value="{{ lv }}" {% if st.level == lv %}selected{% endif %}>{{ lv }}</option>
+            {% endfor %}
+          </select>
+          <button class="btn btn-small">Сохранить уровень</button>
+        </form>
+      </div>
+      <div class="card">
+        <h3>Параметры тренировки</h3>
+        <form method="post" action="{{ url_for('teacher_update_params', alias=st.alias) }}" class="form-card">
+          <label>Новых слов за блок</label>
+          <input type="number" name="new_words" min="1" max="20" value="{{ params.get('new_words', 8) }}">
+          <label>Лимит на ответ, с</label>
+          <input type="number" name="answer_limit_sec" min="5" max="120" value="{{ params.get('answer_limit_sec', 20) }}">
+          <label>Подсказки</label>
+          <input type="number" name="hints" min="0" max="2" value="{{ params.get('hints', 1) }}">
+          <label>Длина блока</label>
+          <input type="number" name="block_length" min="3" max="30" value="{{ params.get('block_length', 12) }}">
+          <label>Обратная связь</label>
+          <select name="feedback_mode">
+            {% for m in ['brief', 'detailed', 'encouraging'] %}
+              <option value="{{ m }}" {% if params.get('feedback_mode') == m %}selected{% endif %}>{{ m }}</option>
+            {% endfor %}
+          </select>
+          <button class="btn btn-small btn-primary">Применить</button>
+        </form>
+      </div>
+      <div class="card">
+        <h3>Рекомендации</h3>
+        {% for r in recs %}
+          <p class="rec rec-{{ r.status }}"><strong>{{ r.status }}</strong>: {{ r.message }}</p>
+        {% else %}
+          <p class="muted">Рекомендаций нет.</p>
+        {% endfor %}
+      </div>
+    </div>
+
+    <h2>Слова в расписании</h2>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Слово</th><th>Перевод</th><th>Коробка</th><th>Следующее повторение</th><th>Попыток</th><th>Верных</th></tr>
+        {% for r in srs_rows %}
+        {% set w = word_map.get(r.word_id) %}
+        <tr>
+          <td>{{ w.word if w else r.word_id }}</td>
+          <td>{{ w.translation if w else '—' }}</td>
+          <td>{{ r.box }}</td>
+          <td>{{ r.due_date }}</td>
+          <td>{{ r.reviews }}</td>
+          <td>{{ r.correct_count }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+
+    <h2>Последние ответы</h2>
+    <p><a class="btn btn-small" href="{{ url_for('teacher_export', alias=st.alias) }}">Выгрузить CSV</a></p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Дата</th><th>Слово</th><th>Упражнение</th><th>Верно</th><th>Время, мс</th><th>Коробка</th></tr>
+        {% for a in answers %}
+        {% set w = word_map.get(a.word_id) %}
+        <tr>
+          <td class="muted">{{ a.created_at }}</td>
+          <td>{{ w.word if w else a.word_id }}</td>
+          <td>{{ a.exercise }}</td>
+          <td>{% if a.correct %}✓{% else %}✗{% endif %}</td>
+          <td>{{ a.response_time_ms }}</td>
+          <td>{{ a.box_after }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+
+    <h2>Диагностика: что данные говорят об обучающемся</h2>
+    {% if interpretation %}
+    <div class="table-wrap">
+      <table>
+        <tr><th>Показатель</th><th>Значение</th><th>Что это значит</th></tr>
+        {% for name, value, text in interpretation %}
+        <tr><td>{{ name }}</td><td><strong>{{ value }}</strong></td><td>{{ text }}</td></tr>
+        {% endfor %}
+      </table>
+    </div>
+    <p class="muted">Словарный запас — доля слов набора, которые студент узнал во входном тесте (употребление в контексте даёт дополнительный вес).
+      Кратковременная память — самое длинное число (3–6 цифр), которое студент верно воспроизвёл по памяти.
+      Тревожность — среднее по пяти вопросам (1 — спокоен, 5 — сильно волнуется).
+      Готовность — взвешенная сумма показателей (0–100), по ней выбирается стартовый профиль.</p>
+    {% else %}
+      <p class="muted">Диагностика не пройдена.</p>
+    {% endif %}
+
+    <h2>История диагностик</h2>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Дата</th><th>Готовность</th><th>Словарь</th><th>Узнаёт / употребляет</th><th>Память</th><th>Тревожность</th><th>Профиль</th></tr>
+        {% for d in diags %}
+        <tr>
+          <td class="muted">{{ d.created_at }}</td>
+          <td>{{ d.readiness }}</td>
+          <td>{{ d.vocab_pct }}%</td>
+          <td>{{ d.known_count }} / {{ d.fluent_count }}</td>
+          <td>{{ d.memory_span }}</td>
+          <td>{{ d.anxiety }}</td>
+          <td>{{ d.profile }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+  </div>
+</section>
+{% endblock %}

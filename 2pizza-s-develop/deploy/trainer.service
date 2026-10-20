@@ -1,0 +1,14 @@
+[Unit]
+Description=Adaptive lexical trainer (Flask + waitress/gunicorn)
+After=network.target
+
+[Service]
+User=trainer
+WorkingDirectory=/opt/trainer
+EnvironmentFile=/opt/trainer/.env
+ExecStart=/opt/trainer/.venv/bin/gunicorn -c deploy/gunicorn_conf.py app:app
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

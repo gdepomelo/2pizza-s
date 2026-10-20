@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Адаптивный тренажёр английской лексики с ИИ{% endblock %}</title>
+  <meta name="description" content="{% block meta_description %}Тренажёр английской лексики для студентов: диагностика уровня, свой темп и ИИ, который после каждого занятия подбирает повторения, задания и примеры.{% endblock %}">
+  <meta name="keywords" content="адаптивный тренажёр, английская лексика, искусственный интеллект, интервальное повторение, уровень подготовки, IT-лексика, тренажёр для студентов">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<header class="site-header">
+  <div class="container header-inner">
+    <a class="logo" href="{{ url_for('index') }}">LexiTrain<span>.KFU</span></a>
+    <nav class="nav">
+      <a href="{{ url_for('index') }}#how">Как это работает</a>
+      <a href="{{ url_for('index') }}#ai">ИИ</a>
+      <a href="{{ url_for('index') }}#exercises">Упражнения</a>
+      <a href="{{ url_for('index') }}#faq">Вопросы</a>
+      {% if alias %}
+        <a href="{{ url_for('diagnostics_hub') }}">Диагностика</a>
+        <a href="{{ url_for('cabinet') }}">Кабинет</a>
+        <a href="{{ url_for('practice') }}" class="btn btn-small">Практика</a>
+        <a href="{{ url_for('logout') }}">Выйти</a>
+      {% else %}
+        <a href="{{ url_for('consent') }}" class="btn btn-small">Начать</a>
+      {% endif %}
+      <a href="{{ url_for('teacher_login') }}" class="nav-teacher">Преподавателю</a>
+    </nav>
+  </div>
+</header>
+
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    <div class="container">
+      {% for m in messages %}<div class="flash">{{ m }}</div>{% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
+<main>
+  {% block content %}{% endblock %}
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <p>Адаптивный тренажёр английской лексики с ИИ. Исследовательский прототип, Казанский федеральный университет.</p>
+    <p class="muted">Данные студентов видят только студент и его преподаватель. ИИ не получает имён и идентификаторов студентов.</p>
+  </div>
+</footer>
+{% block scripts %}{% endblock %}
+</body>
+</html>

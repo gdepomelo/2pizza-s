@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Стартовая настройка{% endblock %}
+{% block content %}
+<section class="section">
+  <div class="container narrow">
+    <h1>Стартовая настройка</h1>
+    <p>Диагностика не ставит ярлыков: это параметры, с которых начнётся тренировка. Их уточнят ваши ответы, а преподаватель может изменить любой пункт. Подробные результаты диагностики видит преподаватель.</p>
+    <div class="card">
+      <h3>Ваш старт: {{ profile_label }}</h3>
+      <p>{{ profile_text }}</p>
+      <ul class="stat-list">
+        <li><span>Слов в одном блоке</span><strong>{{ params.new_words }}</strong></li>
+        <li><span>Подсказки</span><strong>{{ {0: 'нет', 1: 'есть', 2: 'первая буква и длина слова'}.get(params.hints, params.hints) }}</strong></li>
+        <li><span>Обратная связь</span><strong>{{ {'brief': 'короткая', 'detailed': 'подробная', 'encouraging': 'мягкая, с поддержкой'}.get(params.feedback_mode, params.feedback_mode) }}</strong></li>
+      </ul>
+      <p class="muted">Каждый блок — два этапа: сначала карточки, потом Fill the gaps. Слова, которые не получились, повторяются, пока не будут выучены.</p>
+      <a class="btn btn-primary" href="{{ url_for('practice') }}">Начать тренировку</a>
+      <a class="btn" href="{{ url_for('cabinet') }}">Личный кабинет</a>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Кратковременная память — диагностика{% endblock %}
+{% block content %}
+<section class="section">
+  <div class="container narrow center">
+    <h1>Объём кратковременной памяти</h1>
+    <p>На экране на несколько секунд появится число. Запомните его и введите по памяти, затем нажмите <kbd>Enter</kbd>. Длина растёт от {{ conf.min_span }} до {{ conf.max_span }} цифр, пока вы справляетесь. Копировать и вставлять число нельзя.</p>
+    <div id="memory-stage">
+      <div class="memory-display no-copy" id="memory-display"></div>
+      <input type="text" id="memory-input" class="memory-input" autocomplete="off"
+             inputmode="numeric" maxlength="{{ conf.max_span }}" style="display:none">
+      <div><button id="memory-btn" class="btn btn-primary">Показать (Enter)</button></div>
+      <p class="muted" id="memory-status"></p>
+    </div>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+  window.MEM_CONF = {{ conf | tojson }};
+</script>
+<script src="{{ url_for('static', filename='js/diag_memory.js') }}"></script>
+{% endblock %}

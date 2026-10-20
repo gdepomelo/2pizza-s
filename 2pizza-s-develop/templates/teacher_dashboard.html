@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Группа — кабинет преподавателя{% endblock %}
+{% block content %}
+<section class="section">
+  <div class="container">
+    <h1>Группа</h1>
+    <p>
+      <a class="btn btn-small" href="{{ url_for('teacher_export_all') }}">Выгрузить все ответы (CSV)</a>
+      <a class="btn btn-small" href="{{ url_for('teacher_logout') }}">Выйти</a>
+    </p>
+
+    {% if pending %}
+      <h2>Рекомендации системы</h2>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Студент</th><th>Рекомендация</th><th>Дата</th><th>Действие</th></tr>
+          {% for rec in pending %}
+          <tr>
+            <td><a href="{{ url_for('teacher_student', alias=rec.alias) }}">{{ rec.alias }}</a></td>
+            <td>{{ rec.message }}</td>
+            <td class="muted">{{ rec.created_at }}</td>
+            <td>
+              <form method="post" action="{{ url_for('teacher_recommendation', rec_id=rec.id, action='approve') }}" style="display:inline">
+                <button class="btn btn-small btn-primary">Принять</button>
+              </form>
+              <form method="post" action="{{ url_for('teacher_recommendation', rec_id=rec.id, action='reject') }}" style="display:inline">
+                <button class="btn btn-small">Отклонить</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </table>
+      </div>
+    {% endif %}
+
+    <h2>Студенты</h2>
+    {% if not stats %}
+      <p class="muted">Пока никто не прошёл диагностику. Раздайте студентам ссылку <code>/start</code>.</p>
+    {% else %}
+    <div class="table-wrap">
+      <table>
+        <tr>
+          <th>Псевдоним</th><th>Уровень</th><th>Профиль</th>
+          <th>Закреплено слов</th><th>Повторить сегодня</th>
+          <th>Точность (7 дней)</th><th>Параметры</th>
+        </tr>
+        {% for s in stats %}
+        <tr>
+          <td><a href="{{ url_for('teacher_student', alias=s.student.alias) }}">{{ s.student.alias }}</a></td>
+          <td>{{ s.student.level or '—' }}</td>
+          <td>{{ s.student.profile or '—' }}</td>
+          <td>{{ s.fluent }}</td>
+          <td>{{ s.due }}</td>
+          <td>{% if s.accuracy is not none %}{{ '%.0f' | format(s.accuracy * 100) }}% ({{ s.answers_n }}){% else %}—{% endif %}</td>
+          <td class="muted">
+            {{ s.params.get('new_words', '—') }} новых ·
+            {{ s.params.get('answer_limit_sec', '—') }} с ·
+            подсказок {{ s.params.get('hints', '—') }} ·
+            блок {{ s.params.get('block_length', '—') }}
+          </td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

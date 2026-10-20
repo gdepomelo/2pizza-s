@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}Личный кабинет — {{ st.alias }}{% endblock %}
+{% block content %}
+<section class="section">
+  <div class="container">
+    <h1>Личный кабинет: {{ st.alias }}</h1>
+    <p class="muted">Кабинет привязан к вашему псевдониму и сохраняется в браузере. Чтобы открыть его с другого устройства, войдите под тем же псевдонимом.</p>
+
+    <div class="grid-4">
+      <div class="card stat-tile"><span class="muted">Слов в изучении</span><strong>{{ srs_rows | length }} / {{ total_words }}</strong></div>
+      <div class="card stat-tile"><span class="muted">Закреплено</span><strong>{{ fluent_n }}</strong></div>
+      <div class="card stat-tile"><span class="muted">Повторить сегодня</span><strong>{{ due_n }}</strong></div>
+      <div class="card stat-tile"><span class="muted">Точность за 7 дней</span><strong>{% if accuracy is not none %}{{ '%.0f' | format(accuracy * 100) }}%{% else %}—{% endif %}</strong></div>
+    </div>
+
+    <div class="card mt daily-card">
+      <div>
+        <h3>🔥 Серия: {{ daily.streak }} {{ 'день' if daily.streak % 10 == 1 and daily.streak % 100 != 11 else ('дня' if daily.streak % 10 in [2,3,4] and daily.streak % 100 not in [12,13,14] else 'дней') }}</h3>
+        <p>Сегодня: <strong>{{ daily.today }} из {{ daily.goal }}</strong> блоков{% if daily.goal_met %} — цель выполнена 🎯{% endif %}.
+          <span class="muted">Серия — сколько дней подряд выполнена цель. Если сегодня цель ещё не выполнена, серия не сгорает до конца дня.</span></p>
+      </div>
+      <form method="post" action="{{ url_for('cabinet_goal') }}" class="goal-form">
+        <label for="goal">Цель: блоков в день</label>
+        <select name="goal" id="goal">
+          {% for g in range(1, 6) %}<option value="{{ g }}" {% if g == daily.goal %}selected{% endif %}>{{ g }}</option>{% endfor %}
+        </select>
+        <button class="btn btn-small">Сохранить</button>
+      </form>
+    </div>
+
+    <div class="grid-2 mt">
+      <div class="card">
+        <h3>Профиль обучения</h3>
+        {% if diag %}
+          <p><strong>{{ profile_label }}</strong> · уровень {{ st.level or '—' }}</p>
+          <p>{{ profile_text }}</p>
+          <p class="muted">Диагностика: {{ diag.created_at[:10] }}. <a href="{{ url_for('diagnostics_hub') }}">Пройти заново</a></p>
+        {% else %}
+          <p>Диагностика ещё не пройдена. <a href="{{ url_for('diagnostics_hub') }}">Пройти</a></p>
+        {% endif %}
+        <a class="btn btn-primary" href="{{ url_for('practice') }}">Тренироваться</a>
+      </div>
+      <div class="card">
+        <h3>Трудные слова</h3>
+        {% if hard %}
+          <ul class="stat-list">
+            {% for h in hard %}{% set w = word_map.get(h.word_id) %}
+            <li><span><strong>{{ w.word if w else h.word_id }}</strong> — {{ w.translation if w else '' }}</span><span class="muted">ошибок: {{ h.errors }}</span></li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="muted">Пока ошибок нет.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <h2>Модули</h2>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Модуль</th><th>Статус</th><th>Начато</th><th>Пройдено</th><th>Закреплено</th></tr>
+        {% for m in modules %}
+        <tr class="{{ 'row-current' if m.status == 'current' }}">
+          <td>{{ m.title }}{% if m.topic %}<div class="muted">{{ m.topic }}</div>{% endif %}</td>
+          <td>{{ {'done': '✓ завершён', 'current': 'текущий', 'started': 'начат', 'locked': 'впереди'}[m.status] }}</td>
+          <td>{{ m.started }} / {{ m.total }}</td>
+          <td>{{ m.passed }} / {{ m.total }}</td>
+          <td>{{ m.fluent }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+    <p class="muted">Новые слова идут по порядку модулей. Модуль завершён, когда изучены все его слова; после этого открывается следующий. «Пройдено» — слово хотя бы раз прошло блок без ошибок.</p>
+
+    <h2>Пройденные блоки</h2>
+    {% if blocks %}
+    <div class="table-wrap">
+      <table>
+        <tr><th>Дата</th><th>Слов</th><th>Ответов</th><th>Верных</th><th>«Забыл» на карточках</th><th>Ошибок в Fill the gaps</th></tr>
+        {% for b in blocks %}
+        <tr>
+          <td class="muted">{{ b.started[:16] | replace('T', ' ') }}</td>
+          <td>{{ b.words }}</td>
+          <td>{{ b.attempts }}</td>
+          <td>{{ '%.0f' | format(b.correct / b.attempts * 100) }}%</td>
+          <td>{{ b.forgot }}</td>
+          <td>{{ b.gap_errors }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+    {% else %}
+      <p class="muted">Блоков пока нет.</p>
+    {% endif %}
+
+    <h2>Мои слова</h2>
+    {% if srs_rows %}
+    <div class="table-wrap">
+      <table>
+        <tr><th>Слово</th><th>Перевод</th><th>Стадия (0–5)</th><th>Следующее повторение</th><th>Верных / попыток</th></tr>
+        {% for r in srs_rows %}{% set w = word_map.get(r.word_id) %}
+        <tr>
+          <td>{{ w.word if w else r.word_id }}</td>
+          <td>{{ w.translation if w else '—' }}</td>
+          <td>{{ r.box }}</td>
+          <td>{{ r.due_date }}</td>
+          <td>{{ r.correct_count }} / {{ r.reviews }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+    {% else %}
+      <p class="muted">Слова появятся после первой тренировки.</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

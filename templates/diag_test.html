@@ -4,7 +4,7 @@
 <section class="section">
   <div class="container narrow">
     <h1>Входной тест</h1>
-    <p id="phase-label">Фаза 1 из 2: узнавание значения. Если слово не знаете — выбирайте «Не знаю».</p>
+    <p id="phase-label">Фаза 1 из 2: узнавание значения, 15 слов. Тест подстраивается: знаете слово — следующее будет сложнее, не знаете — чуть проще. Если слово не знаете — выбирайте «Не знаю». Отвечать можно клавишами <kbd>1</kbd>–<kbd>5</kbd>.</p>
     <div class="progress"><div class="progress-bar" id="progress-bar"></div></div>
     <div class="quiz-card" id="quiz">
       <div class="quiz-word" id="quiz-word"></div>
@@ -16,6 +16,7 @@
 {% block scripts %}
 <script>
   window.DIAG_WORDS = {{ words | tojson }};
+  window.DIAG_LEVELS = {{ levels }};
 </script>
 <script src="{{ url_for('static', filename='js/diag_test.js') }}"></script>
 {% endblock %}

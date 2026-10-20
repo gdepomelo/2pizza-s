@@ -19,6 +19,7 @@
       <a href="{{ url_for('index') }}#faq">Вопросы</a>
       {% if alias %}
         <a href="{{ url_for('diagnostics_hub') }}">Диагностика</a>
+        <a href="{{ url_for('cabinet') }}">Кабинет</a>
         <a href="{{ url_for('practice') }}" class="btn btn-small">Практика</a>
         <a href="{{ url_for('logout') }}">Выйти</a>
       {% else %}

@@ -15,9 +15,11 @@ AI_RATE_LIMIT = int(os.environ.get("AI_RATE_LIMIT", "10"))
 AI_RATE_WINDOW = 60
 
 SYSTEM_PROMPT = (
-    "You are a lexical trainer assistant for English learners (Russian speakers, IT students). "
+    "You are a helpful English teacher assistant creating materials for school students (Russian speakers) at the A1–A2 (beginner) level, English File Beginner/Elementary vocabulary. "
+    "Your sentences must be grammatically simple but natural, using vocabulary appropriate for teenagers. "
     "Answer ONLY with valid JSON matching the requested schema. "
     "Never ask for or use personal data, names or identifiers of learners."
+
 )
 
 logger = logging.getLogger("trainer.ai")
@@ -103,43 +105,111 @@ def _fallback_distractors(word_id, count=3):
     import random
 
     word = WORD_BY_ID[word_id]
-    pool = [
-        w["word"]
-        for w in WORDS
-        if w["id"] != word_id and w["pos"] == word["pos"] and w["word"] != word["word"]
-    ]
+    # Сначала слова той же части речи из того же модуля, потом — из всего банка.
+    same = [w for w in WORDS if w["id"] != word_id and w["pos"] == word["pos"]
+            and w["word"].lower() != word["word"].lower()]
+    pool = [w["word"] for w in same if w.get("module") == word.get("module")]
+    if len(pool) < count:
+        pool = [w["word"] for w in same]
     if len(pool) < count:
         pool = [w["word"] for w in WORDS if w["id"] != word_id]
-    return random.sample(pool, count)
+    return random.sample(pool, min(count, len(pool)))
 
 
 def get_distractors(word_id, count=3, alias=None):
+    """Неверные варианты (английские слова) для пропуска в примере. Правильное слово не входит."""
     from .db import get_db
 
-    db = get_db()
-    key = f"distr:{word_id}"
-    cached = _cache_get(db, key)
-    if cached:
-        return cached
     word = WORD_BY_ID.get(word_id)
     if not word:
         return []
+    db = get_db()
+    key = f"distr2:{word_id}"
+    cached = _cache_get(db, key)
+    if cached:
+        return cached
     if not _rate_ok(alias):
         return _fallback_distractors(word_id, count)
     prompt = (
-        f"English word: '{word['word']}' ({word['pos']}), Russian: '{word['translation']}'. "
-        f"Context: {word['example']} "
-        f"Give {count} plausible WRONG translations/options in the same language and part of speech, "
-        "similar difficulty, that a learner might pick by mistake. "
+        f"Sentence: {word['example']} "
+        f"The target word/phrase is '{word['word']}' ({word['pos']}). "
+        f"Give {count} other English words of the same part of speech and similar difficulty "
+        "that a learner might wrongly put into the gap, but that do NOT fit the meaning. "
         'JSON: {"distractors": ["..."]}'
     )
     data = _chat(prompt, max_tokens=200)
     if data and isinstance(data.get("distractors"), list):
-        distractors = [str(d) for d in data["distractors"] if str(d) != word["word"]][:count]
-        if distractors:
+        distractors = []
+        for d in data["distractors"]:
+            d = str(d).strip()
+            if d and d.lower() != word["word"].lower() and d not in distractors:
+                distractors.append(d)
+        distractors = distractors[:count]
+        if len(distractors) == count:
             _cache_put(db, key, distractors)
             return distractors
     return _fallback_distractors(word_id, count)
+
+
+def _word_by_text(text):
+    t = (text or "").strip().lower()
+    for w in WORD_BY_ID.values():
+        if w["word"].lower() == t:
+            return w
+    return None
+
+
+def _bank_option_explanation(word, option):
+    other = _word_by_text(option)
+    need = f"здесь нужно «{word['translation']}»"
+    if other and other["pos"] != word["pos"]:
+        return f"Другая часть речи ({other['pos']} вместо {word['pos']}), а {need}."
+    return f"Не подходит по смыслу: предложение теряет смысл, а {need}."
+
+
+def explain_options(word_id, wrong_options, alias=None):
+    """Объяснение для каждого неверного варианта: {option: {"translation", "explanation", "source"}}."""
+    from .db import get_db
+
+    word = WORD_BY_ID.get(word_id)
+    if not word:
+        return {}
+    result = {}
+    for opt in wrong_options:
+        other = _word_by_text(opt)
+        result[opt] = {
+            "translation": other["translation"] if other else "",
+            "explanation": _bank_option_explanation(word, opt),
+            "source": "bank",
+        }
+    if not wrong_options:
+        return result
+    db = get_db()
+    key = "expl:" + word_id + "|" + "|".join(sorted(wrong_options))
+    cached = _cache_get(db, key)
+    if cached is None and _rate_ok(alias):
+        prompt = (
+            f"Sentence: {word['example']} "
+            f"Correct word/phrase: '{word['word']}' (Russian: '{word['translation']}'). "
+            f"Wrong options: {', '.join(wrong_options)}. "
+            "For EACH wrong option give its Russian translation and explain in ONE short sentence "
+            "in RUSSIAN why it does not fit this sentence. "
+            'JSON: {"options": {"<option>": {"translation": "...", "explanation": "..."}}}'
+        )
+        data = _chat(prompt, max_tokens=400)
+        if data and isinstance(data.get("options"), dict):
+            cached = data["options"]
+            _cache_put(db, key, cached)
+    if isinstance(cached, dict):
+        for opt in wrong_options:
+            item = cached.get(opt)
+            if isinstance(item, dict) and item.get("explanation"):
+                result[opt] = {
+                    "translation": str(item.get("translation") or result[opt]["translation"]),
+                    "explanation": str(item["explanation"]),
+                    "source": "ai",
+                }
+    return result
 
 
 def get_example(word_id, alias=None):
@@ -162,8 +232,10 @@ def get_example(word_id, alias=None):
         return bank
     prompt = (
         f"Word: '{word['word']}' ({word['pos']}), Russian: '{word['translation']}'. "
-        "Write ONE short fresh example sentence in professional IT English "
-        "(documentation, code comments or team chat style). Different from this existing example: "
+        "Write ONE short, natural example sentence suitable for a B1 level school student. "
+        "The sentence should be 8-12 words long, use everyday school or teenage topics, and clearly show the word's meaning. "
+        "Do NOT use complex grammar (like third conditionals or passive voice) or advanced IT terms. "
+        "Different from this existing example: "
         f"{word['example']} "
         'JSON: {"example": "...", "example_ru": "..."}'
     )
@@ -174,41 +246,6 @@ def get_example(word_id, alias=None):
             "example_ru": str(data.get("example_ru") or ""),
             "source": "ai",
         }
-        _cache_put(db, key, result)
-        return result
-    return bank
-
-
-def explain_error(word_id, given, correct, alias=None):
-    from .db import get_db
-
-    db = get_db()
-    key = f"err:{word_id}|{given}|{correct}"
-    cached = _cache_get(db, key)
-    if cached:
-        return cached
-    word = WORD_BY_ID.get(word_id)
-    if not word:
-        return None
-    bank = {
-        "explanation": (
-            f"«{correct}» — это «{word['translation']}». "
-            f"Обратите внимание на контекст: {word['example']}"
-        ),
-        "source": "bank",
-    }
-    if not _rate_ok(alias):
-        return bank
-    prompt = (
-        f"Word: '{word['word']}', Russian: '{word['translation']}'. "
-        f"Learner answered '{given}' instead of '{correct}'. "
-        "Explain in 1-2 short sentences in RUSSIAN why the answer is wrong and how to tell them apart. "
-        "Be concrete, no personal data. "
-        'JSON: {"explanation": "..."}'
-    )
-    data = _chat(prompt, max_tokens=200)
-    if data and data.get("explanation"):
-        result = {"explanation": str(data["explanation"]), "source": "ai"}
         _cache_put(db, key, result)
         return result
     return bank

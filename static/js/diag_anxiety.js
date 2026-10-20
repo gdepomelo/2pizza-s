@@ -11,7 +11,7 @@
       body: JSON.stringify({ answers: answers })
     })
       .then(r => r.json())
-      .then(() => { window.location.href = '/diagnostics/result'; })
+      .then(d => { window.location.href = d.next || '/diagnostics'; })
       .catch(() => alert('Ошибка отправки. Попробуйте ещё раз.'));
   });
 })();

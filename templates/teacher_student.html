@@ -91,16 +91,34 @@
       </table>
     </div>
 
-    <h2>Диагностики</h2>
+    <h2>Диагностика: что данные говорят об обучающемся</h2>
+    {% if interpretation %}
     <div class="table-wrap">
       <table>
-        <tr><th>Дата</th><th>Готовность</th><th>Словарь</th><th>Темп</th><th>Память</th><th>Тревожность</th><th>Профиль</th></tr>
+        <tr><th>Показатель</th><th>Значение</th><th>Что это значит</th></tr>
+        {% for name, value, text in interpretation %}
+        <tr><td>{{ name }}</td><td><strong>{{ value }}</strong></td><td>{{ text }}</td></tr>
+        {% endfor %}
+      </table>
+    </div>
+    <p class="muted">Словарный запас — доля слов набора, которые студент узнал во входном тесте (употребление в контексте даёт дополнительный вес).
+      Кратковременная память — самое длинное число (3–6 цифр), которое студент верно воспроизвёл по памяти.
+      Тревожность — среднее по пяти вопросам (1 — спокоен, 5 — сильно волнуется).
+      Готовность — взвешенная сумма показателей (0–100), по ней выбирается стартовый профиль.</p>
+    {% else %}
+      <p class="muted">Диагностика не пройдена.</p>
+    {% endif %}
+
+    <h2>История диагностик</h2>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Дата</th><th>Готовность</th><th>Словарь</th><th>Узнаёт / употребляет</th><th>Память</th><th>Тревожность</th><th>Профиль</th></tr>
         {% for d in diags %}
         <tr>
           <td class="muted">{{ d.created_at }}</td>
           <td>{{ d.readiness }}</td>
           <td>{{ d.vocab_pct }}%</td>
-          <td>{{ d.taps_per_sec }}</td>
+          <td>{{ d.known_count }} / {{ d.fluent_count }}</td>
           <td>{{ d.memory_span }}</td>
           <td>{{ d.anxiety }}</td>
           <td>{{ d.profile }}</td>

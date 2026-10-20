@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Вопросы о спокойствии — диагностика{% endblock %}
+{% block content %}
+<section class="section">
+  <div class="container narrow">
+    <h1>Спокойствие при ответах</h1>
+    <p>Пять утверждений. Оцените по шкале от 1 (совсем не про меня) до 5 (полностью согласен/согласна).</p>
+    <form id="anxiety-form" class="form-card">
+      {% for q in questions %}
+        <fieldset class="anxiety-q">
+          <legend>{{ q.text }}</legend>
+          <div class="scale">
+            {% for v in range(1, 6) %}
+              <label><input type="radio" name="q{{ q.id }}" value="{{ v }}" required> {{ v }}</label>
+            {% endfor %}
+          </div>
+        </fieldset>
+      {% endfor %}
+      <button type="submit" class="btn btn-primary">Узнать профиль</button>
+    </form>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/diag_anxiety.js') }}"></script>
+{% endblock %}

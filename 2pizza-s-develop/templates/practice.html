@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Тренировка — тренажёр лексики{% endblock %}
+{% block content %}
+<section class="section">
+  <div class="container narrow">
+    <h1>Тренировка</h1>
+    <p class="muted">Блок из {{ params.new_words }} слов в два этапа: <strong>карточки</strong>, затем <strong>Fill the gaps</strong>. Слова из стопки «Забыл» повторяются по кругу, пока стопка не опустеет.
+      Клавиши: <kbd>Пробел</kbd> — перевернуть, <kbd>←</kbd>/<kbd>→</kbd> — «Забыл»/«Помню», <kbd>1</kbd>–<kbd>4</kbd> — вариант, <kbd>Enter</kbd> — ответить / дальше.</p>
+    <div class="practice-meta">
+      <span id="p-stage"></span>
+      <span id="p-progress"></span>
+    </div>
+    <div class="progress"><div class="progress-bar" id="p-bar"></div></div>
+
+    <div id="practice-area">
+      <button id="start-btn" class="btn btn-primary">Начать блок <kbd>Enter</kbd></button>
+    </div>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+  window.FEEDBACK_MODE = {{ params.feedback_mode | tojson }};
+</script>
+<script src="{{ url_for('static', filename='js/practice.js') }}"></script>
+{% endblock %}

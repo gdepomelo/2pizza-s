@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Диагностика — тренажёр лексики{% endblock %}
+{% block content %}
+<section class="section">
+  <div class="container narrow">
+    <h1>Диагностика</h1>
+    <p>Три коротких шага в любом порядке. Результат появится, когда будут пройдены все шаги, — после каждого шага вы попадёте на следующий незавершённый.</p>
+    <ol class="diag-steps">
+      {% for s in stages %}
+      <li class="{{ 'is-done' if s.done }}">
+        <div>
+          <h3>{% if s.done %}<span class="done-mark">✓</span> {% endif %}{{ s.title }}</h3>
+          <p>{{ s.text }}</p>
+        </div>
+        <a class="btn {{ 'btn-primary' if not s.done }}" href="{{ s.url }}">{{ 'Пройти заново' if s.done else 'Начать' }}</a>
+      </li>
+      {% endfor %}
+    </ol>
+    {% if diag %}
+      <p class="flash">Последняя диагностика: профиль «{{ diag.profile }}».
+        <a href="{{ url_for('diagnostics_result') }}">Посмотреть стартовую настройку</a></p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
